@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include "esp_attr.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -505,7 +507,7 @@ static void command_execute(const char *line, char *out, size_t out_size)
     if (!strcmp(command, "help") || !strcmp(command, "?")) {
         snprintf(out, out_size,
             "Commands: j1 | j2 | home | on | off | stop | p <deg> | kp <value> | "
-            "pi <kp> <ki> | vmax <deg/s> | u <0..0.35> | test <duty> | s\n"
+            "pi <kp> <ki> | vmax <deg/s> | u <0..0.55> | test <duty> | s\n"
             "Motion commands are locked until HARDWARE_WIRING_VERIFIED is set to 1.");
         return;
     }
@@ -609,7 +611,7 @@ static void command_execute(const char *line, char *out, size_t out_size)
         }
     } else if (!strcmp(command, "u")) {
         if (!arg1_is_number || value1 < 0.05f || value1 > 0.35f) {
-            snprintf(out, out_size, "Usage: u <0.05..0.35>");
+            snprintf(out, out_size, "Usage: u <0.05..0.55>");
         } else {
             joint->max_duty = value1;
             joint->velocity_integral =
@@ -621,7 +623,7 @@ static void command_execute(const char *line, char *out, size_t out_size)
         snprintf(out, out_size, "Motion locked: verify wiring then set HARDWARE_WIRING_VERIFIED 1.");
 #else
         if (!arg1_is_number || fabsf(value1) > OPEN_LOOP_TEST_MAX) {
-            snprintf(out, out_size, "Usage: test <-0.35..0.35>");
+            snprintf(out, out_size, "Usage: test <-0.70..0.70>");
         } else if (joint->enabled || joint->homing != HOME_IDLE) {
             snprintf(out, out_size, "Disable the joint and wait for homing to stop first.");
         } else if (joint->limit_left_active || joint->limit_right_active) {

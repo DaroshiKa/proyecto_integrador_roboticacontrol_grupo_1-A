@@ -84,7 +84,7 @@ Escribe un comando por línea y presiona Enter. La consola serie y Wi-Fi compart
 Secuencia inicial sugerida, después de revisar cableado y activar la confirmación en configuración:
 
 1. Selecciona un eje con `j1` o `j2`.
-2. Haz primero una prueba breve con `test 0.15`, con el mecanismo despejado. Aumenta con precaución solo si el motor no vence la zona muerta, sin superar `0.35` en esta configuración.
+2. Haz primero una prueba breve con `test 0.15`, con el mecanismo despejado. Aumenta con precaución solo si el motor no vence la zona muerta, sin superar `0.70` en esta configuración.
 3. Confirma que el encoder cambia en el sentido esperado. Si el motor gira al revés, corrige `J1_MOTOR_SIGN` o `J2_MOTOR_SIGN`; si el encoder lee al revés, revisa su signo por separado.
 4. Solo entonces ejecuta `home`, siempre con supervisión física y posibilidad de cortar alimentación inmediatamente.
 5. Cuando termine el homing, prueba `on` y un movimiento corto como `p 3`. Consulta `s` y usa `stop` cuando termines.

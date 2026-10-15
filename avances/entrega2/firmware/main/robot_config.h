@@ -53,15 +53,15 @@
 #define KP_VELOCITY_DEFAULT     0.008f
 #define KI_VELOCITY_DEFAULT     0.025f
 #define MAX_SPEED_DEFAULT       25.0f
-#define MAX_DUTY_DEFAULT        0.35f
+#define MAX_DUTY_DEFAULT        0.55f
 
-#define HOME_DUTY               0.35f
+#define HOME_DUTY               0.55f
 #define HOME_BACKOFF_DEG        8.0f
 #define HOME_TIMEOUT_MS         30000
 #define HOME_STALL_WINDOW_MS    400
 #define HOME_STALL_MIN_COUNTS   8
 
-#define OPEN_LOOP_TEST_MAX      0.35f
+#define OPEN_LOOP_TEST_MAX      0.70f
 #define OPEN_LOOP_TEST_MS       200
 
 /* Local Wi-Fi access point. Change the sample password before motion is enabled. */
