@@ -1,6 +1,5 @@
 # Proyecto integrador: Robótica y Control Digital
 
-Repositorio de trabajo organizado por áreas mediante ramas independientes.
 
 ## Áreas de trabajo
 
@@ -10,7 +9,3 @@ Repositorio de trabajo organizado por áreas mediante ramas independientes.
 ## Organización
 
 Cada área mantiene sus avances en su propia rama para evitar mezclar cambios que pertenecen a asignaturas distintas.
-
-## Historial
-
-Los cambios nuevos deben registrarse con mensajes descriptivos y con la identidad Git asociada a la cuenta de GitHub del autor. No se deben atribuir a una persona cambios que no haya realizado.
