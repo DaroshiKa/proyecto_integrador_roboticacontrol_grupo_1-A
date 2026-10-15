@@ -56,7 +56,7 @@ Monitor a 115200 baudios; envía cada comando terminado en Enter.
 | Comando | Función |
 |---|---|
 | `j 1` / `j 2` | Selecciona la articulación |
-| `o <duty>` | Prueba breve de sentido de giro, con duty limitado a ±0.3 y articulación deshabilitada |
+| `o <duty>` | Prueba breve de sentido de giro, con duty limitado a ±0.7 y articulación deshabilitada |
 | `h` | Ejecuta el homing hacia el switch derecho |
 | `z` | Define la posición actual como 0°; úsalo solo con el brazo en el centro |
 | `e 0` / `e 1` | Deshabilita / habilita después de referenciar |

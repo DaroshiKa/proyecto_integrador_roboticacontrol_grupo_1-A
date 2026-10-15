@@ -3,7 +3,7 @@
 //
 // Comandos serial (115200, terminados en Enter):
 //   j <1|2>            selecciona articulacion
-//   o <duty>           PRUEBA de signo en lazo abierto: duty (max 0.3) durante 300 ms (solo deshabilitada)
+//   o <duty>           PRUEBA de signo y zona muerta en lazo abierto: duty (max 0.7) durante 300 ms (solo deshabilitada)
 //   h                  homing: va al switch DERECHO (duty bajo), fija la posicion y se retira
 //   z                  declara la posicion actual como 0 deg (brazo en el centro) y la da por referenciada
 //   e <0|1>            deshabilita / habilita (arranca DESHABILITADA; habilitar exige referencia: h o z)
@@ -36,7 +36,8 @@ struct Motor { int dir, pwm, ch, sign; };
 
 void motorBegin(const Motor& m) {
   pinMode(m.dir, OUTPUT); digitalWrite(m.dir, LOW);
-  ledcSetup(m.ch, PWM_FREQ_HZ, PWM_BITS);
+  double f = ledcSetup(m.ch, PWM_FREQ_HZ, PWM_BITS);
+  Serial.printf("LEDC canal %d: frecuencia real = %.0f Hz\n", m.ch, f);   // 0 = configuracion invalida
   ledcAttachPin(m.pwm, m.ch);
   ledcWrite(m.ch, 0);
 }
@@ -53,6 +54,7 @@ struct Joint {
   int     encSign;
   int     limR, limL;
   float   limitDeg, switchRDeg;
+  float   uMin;                                      // zona muerta de esta articulacion
   volatile bool  enabled = false, homed = false, tripped = false;
   volatile bool  limRHit = false, limLHit = false, limitActive = false;
   volatile uint8_t homing = 0;                       // 0 no, 1 hacia el switch, 2 retirandose
@@ -71,9 +73,10 @@ int sel = 0;
 bool streaming = false;
 
 void jointBegin(Joint& j, int a, int b, int dir, int pwm, int ch, int encSign, int motSign,
-                int limR, int limL, float limitDeg, float switchRDeg) {
+                int limR, int limL, float limitDeg, float switchRDeg, float uMin) {
   j.enc.pinA = a; j.enc.pinB = b; j.encSign = encSign;
   j.limR = limR; j.limL = limL; j.limitDeg = limitDeg; j.switchRDeg = switchRDeg;
+  j.uMin = uMin;
   j.mot = {dir, pwm, ch, motSign};
   motorBegin(j.mot);                                  // primero el motor: salida en 0
   pinMode(limR, INPUT_PULLUP); pinMode(limL, INPUT_PULLUP);
@@ -151,6 +154,13 @@ void controlTask(void*) {
       float u    = constrain(uRaw, -j.umax, j.umax);
       if (u == uRaw || (uRaw * err) < 0) j.integ += j.ki * err * dt;   // anti-windup
 
+      // Compensacion de zona muerta: mapea la salida del PID [0,1] al rango util [uMin,1].
+      // Fuera de la banda muerta de error; dentro de ella el duty queda como lo dio el PID.
+      if (fabsf(err) > DEADBAND_DEG && u != 0.0f) {
+        u = copysignf(j.uMin + (1.0f - j.uMin) * fabsf(u), u);
+        u = constrain(u, -j.umax, j.umax);
+      }
+
       motorWrite(j.mot, u);
       j.duty = u;
     }
@@ -202,13 +212,17 @@ void handleLine(char* s) {
     case 'o':
       if (sscanf(s + 1, "%f", &a) == 1) {
         if (j.enabled || j.homing) { Serial.println("Deshabilita primero (e 0) y espera a que termine el homing."); return; }
-        a = constrain(a, -0.3f, 0.3f);
+        a = constrain(a, -0.7f, 0.7f);                // antes 0.3: no alcanzaba la zona muerta
         float p0 = jointPosDeg(j);
         j.openDuty = a; j.openUntil = millis() + 300;
-        delay(450);
+        uint32_t t0 = millis();
+        while (millis() - t0 < 450) {                 // diagnostico: lo que realmente aplica el hilo de control
+          Serial.printf("t=%lu duty=%.3f counts=%ld\n", (unsigned long)(millis() - t0), j.duty, (long)j.enc.count);
+          delay(50);
+        }
         float dp = jointPosDeg(j) - p0;
         Serial.printf("Prueba J%d duty=%+.2f -> cambio %+.2f deg\n", sel + 1, a, dp);
-        if (fabsf(dp) < 0.5f) Serial.println("Casi no se movio: sube un poco el duty o revisa 12 V, D2 y encoder.");
+        if (fabsf(dp) < 0.5f) Serial.println("Casi no se movio: sube el duty (zona muerta) o revisa 12 V, D2 y encoder.");
         else if ((a > 0) != (dp > 0)) Serial.printf("Signo invertido: cambia MOTOR_SIGN_J%d a -1 en config.h (NO toques ENC_SIGN).\n", sel + 1);
         else Serial.println("Signo correcto: duty positivo sube el angulo (hacia el switch derecho).");
       } break;
@@ -225,10 +239,10 @@ void setup() {
     Serial.println("PINS_VERIFIED en false en config.h: los motores quedan apagados.");
     for (;;) delay(1000);
   }
-  jointBegin(joints[0], J1_ENC_A, J1_ENC_B, J1_DIR, J1_PWM, 0, ENC_SIGN_J1, MOTOR_SIGN_J1, J1_LIM_R, J1_LIM_L, J1_LIMIT_DEG, J1_SWITCH_R_DEG);
-  jointBegin(joints[1], J2_ENC_A, J2_ENC_B, J2_DIR, J2_PWM, 1, ENC_SIGN_J2, MOTOR_SIGN_J2, J2_LIM_R, J2_LIM_L, J2_LIMIT_DEG, J2_SWITCH_R_DEG);
+  jointBegin(joints[0], J1_ENC_A, J1_ENC_B, J1_DIR, J1_PWM, 0, ENC_SIGN_J1, MOTOR_SIGN_J1, J1_LIM_R, J1_LIM_L, J1_LIMIT_DEG, J1_SWITCH_R_DEG, U_MIN_J1);
+  jointBegin(joints[1], J2_ENC_A, J2_ENC_B, J2_DIR, J2_PWM, 1, ENC_SIGN_J2, MOTOR_SIGN_J2, J2_LIM_R, J2_LIM_L, J2_LIMIT_DEG, J2_SWITCH_R_DEG, U_MIN_J2);
   xTaskCreatePinnedToCore(controlTask, "control", 4096, nullptr, 5, nullptr, 1);
-  Serial.println("Listo. Todo DESHABILITADO. 'j 1' y 'o 0.15' para el signo, luego 'h' para el homing. 'x' = paro.");
+  Serial.println("Listo. Todo DESHABILITADO. 'j 1' y 'o 0.5' para zona muerta/signo, luego 'h' para el homing. 'x' = paro.");
 }
 
 void loop() {

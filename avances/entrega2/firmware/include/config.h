@@ -24,8 +24,18 @@ constexpr float J2_SWITCH_R_DEG = 72.2f;   // recorrido total medido: 144.3 deg
 constexpr float J1_LIMIT_DEG = 88.0f;
 constexpr float J2_LIMIT_DEG = 67.0f;
 
+// =====================================================================
+//  ZONA MUERTA (duty minimo que vence la friccion estatica)
+//  Medir con 'o 0.4', 'o 0.5', ... : el primer valor que mueve > 0.5 deg.
+//  Valores iniciales: ajustalos a lo que midas en cada articulacion.
+// =====================================================================
+constexpr float U_MIN_J1 = 0.50f;
+constexpr float U_MIN_J2 = 0.50f;
+constexpr float DEADBAND_DEG = 0.3f;   // dentro de esta banda de error no se aplica U_MIN (evita vibracion)
+
 // Homing: va al switch derecho a duty bajo, fija la posicion y se retira BACKOFF_DEG.
-constexpr float    HOME_DUTY         = 0.20f;
+// HOME_DUTY debe ser >= U_MIN + ~0.05, si no el motor no se mueve y aborta.
+constexpr float    HOME_DUTY         = 0.55f;
 constexpr float    HOME_BACKOFF_DEG  = 8.0f;
 constexpr uint32_t HOME_TIMEOUT_MS   = 30000;
 constexpr int      HOME_STALL_COUNTS = 8;      // minimo de cuentas cada 400 ms; si no, aborta
@@ -53,10 +63,10 @@ constexpr int J2_LIM_R = 19, J2_LIM_L = 18;
 //  CONTROL
 // =====================================================================
 constexpr int   CONTROL_HZ  = 1000;
-constexpr int   PWM_FREQ_HZ = 20000;   // el MC33926 acepta hasta 20 kHz
+constexpr int   PWM_FREQ_HZ = 20000;   // el MC33926 acepta hasta 20 kHz. Prueba 5000 y compara U_MIN.
 constexpr int   PWM_BITS    = 10;
 constexpr float DERIV_ALPHA = 0.1f;    // filtro pasa-bajas de la velocidad medida
 
 // Valores de arranque (duty por grado, por (grado*s), por (grado/s)). Solo un punto de partida.
 constexpr float DEF_KP = 0.05f, DEF_KI = 0.0f, DEF_KD = 0.001f;
-constexpr float DEF_UMAX = 0.25f;      // duty maximo al arrancar: bajo a proposito
+constexpr float DEF_UMAX = 0.75f;      // debe ser > U_MIN, si no el lazo cerrado nunca mueve el motor
