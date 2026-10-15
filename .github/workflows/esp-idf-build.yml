@@ -1,0 +1,28 @@
+name: ESP-IDF build
+
+on:
+  push:
+    branches:
+      - robotica
+    paths:
+      - "avances/entrega2/v2_wifi/**"
+      - ".github/workflows/esp-idf-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-esp32:
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:release-v5.5
+    steps:
+      - name: Checkout current branch
+        run: git clone --depth 1 --branch "$GITHUB_REF_NAME" "https://github.com/$GITHUB_REPOSITORY.git" repo-src
+
+      - name: Configure ESP32 and compile
+        working-directory: repo-src/avances/entrega2/v2_wifi
+        run: |
+          . /opt/esp/idf/export.sh
+          idf.py set-target esp32
+          idf.py build
